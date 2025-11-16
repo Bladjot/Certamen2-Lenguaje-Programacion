@@ -42,6 +42,7 @@ Parámetros principales:
 - `-jump-min/-jump-max`: cuánto avanza el LVT cuando se ejecuta un evento interno.
 - `-channel-buffer`: tamaño de los canales Scheduler→Worker.
 - `-seed`: semilla para reproducir ejecuciones.
+- `-max-time`: tope de LVT para scheduler/workers (por defecto 50) para mantener los diagramas legibles.
 - `-speedup`: si se pasa este flag, el programa ejecuta automáticamente la simulación con 1, 2, 4 y
   8 workers, guarda un log por corrida y muestra la tabla de *speedup* relativo al caso de 1 worker.
 
@@ -63,7 +64,7 @@ Cada línea del archivo es un objeto JSON con los campos más relevantes:
 
 ## Visualización de la ejecución
 
-El script `visualize.py` genera un diagrama espacio-tiempo a partir del log JSONL:
+El script `visualize.py` genera un diagrama inspirado en diagramas espacio-tiempo (columnas por entidad y flechas para los eventos externos) a partir del log JSONL:
 
 ```bash
 python3 visualize.py execution.jsonl -o timeline.png --show
