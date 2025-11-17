@@ -58,7 +58,7 @@ func runSpeedupExperiment(base SimulationConfig) error {
 		fmt.Printf("Workers: %d \tDuration: %s \tLog: %s \tEventos: %d\n", workers, res.Duration, cfg.LogPath, res.EventsDispatched)
 	}
 	baseDuration := results[0]
-	fmt.Println("\nSpeedup analysis (relative to 1 worker):")
+	fmt.Println("\nSpeedup analysis:")
 	for idx, workers := range counts {
 		speedup := float64(baseDuration) / float64(results[idx])
 		fmt.Printf("Workers: %d \tSpeedup: %.2f\n", workers, speedup)
