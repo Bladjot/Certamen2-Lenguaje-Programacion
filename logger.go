@@ -15,6 +15,20 @@ type Logger struct {
 	file *os.File
 }
 
+// LogEntry describe los eventos significativos a registrar.
+type LogEntry struct {
+	WallTime     time.Time      `json:"wall_time"`
+	Entity       string         `json:"entity"`
+	Event        string         `json:"event"`
+	SimTime      int            `json:"sim_time"`
+	WorkerID     int            `json:"worker_id,omitempty"`
+	EventID      int            `json:"event_id,omitempty"`
+	Target       int            `json:"target_worker,omitempty"`
+	RollbackFrom int            `json:"rollback_from,omitempty"`
+	RollbackTo   int            `json:"rollback_to,omitempty"`
+	Details      map[string]any `json:"details,omitempty"`
+}
+
 func NewLogger(path string) (*Logger, error) {
 	file, err := os.Create(path)
 	if err != nil {
@@ -40,18 +54,4 @@ func (l *Logger) Log(entry LogEntry) {
 	if err := l.enc.Encode(entry); err != nil {
 		fmt.Fprintf(os.Stderr, "logger error: %v\n", err)
 	}
-}
-
-// LogEntry describe los eventos significativos a registrar.
-type LogEntry struct {
-	WallTime     time.Time      `json:"wall_time"`
-	Entity       string         `json:"entity"`
-	Event        string         `json:"event"`
-	SimTime      int            `json:"sim_time"`
-	WorkerID     int            `json:"worker_id,omitempty"`
-	EventID      int            `json:"event_id,omitempty"`
-	Target       int            `json:"target_worker,omitempty"`
-	RollbackFrom int            `json:"rollback_from,omitempty"`
-	RollbackTo   int            `json:"rollback_to,omitempty"`
-	Details      map[string]any `json:"details,omitempty"`
 }

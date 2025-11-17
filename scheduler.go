@@ -7,7 +7,7 @@ import (
 
 // Scheduler genera eventos externos en orden creciente de tiempo.
 type Scheduler struct {
-	cfg         SimulationConfig
+	cfg         ConfigSimulacion
 	workerChans []chan Evento
 	logger      *Logger
 	rand        *rand.Rand
@@ -15,7 +15,7 @@ type Scheduler struct {
 	nextEventID int
 }
 
-func NewScheduler(cfg SimulationConfig, workerChans []chan Evento, logger *Logger) *Scheduler {
+func NewScheduler(cfg ConfigSimulacion, workerChans []chan Evento, logger *Logger) *Scheduler {
 	return &Scheduler{
 		cfg:         cfg,
 		workerChans: workerChans,

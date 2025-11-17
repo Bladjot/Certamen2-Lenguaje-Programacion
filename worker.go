@@ -11,17 +11,17 @@ import (
 // Worker procesa eventos y maneja checkpoints/rollbacks.
 type Worker struct {
 	id          int
-	cfg         SimulationConfig
+	cfg         ConfigSimulacion
 	input       chan Evento
 	logger      *Logger
 	rand        *rand.Rand
 	state       WorkerState
-	history     []Evento
+	historial   []Evento
 	checkpoints []Checkpoint
 	stats       WorkerStats
 }
 
-func NewWorker(id int, cfg SimulationConfig, input chan Evento, logger *Logger) *Worker {
+func NewWorker(id int, cfg ConfigSimulacion, input chan Evento, logger *Logger) *Worker {
 	w := &Worker{
 		id:     id,
 		cfg:    cfg,
@@ -38,25 +38,25 @@ func NewWorker(id int, cfg SimulationConfig, input chan Evento, logger *Logger) 
 func (w *Worker) Run(wg *sync.WaitGroup) {
 	defer wg.Done()
 	for event := range w.input {
-		w.handleExternal(event)
+		w.manejoEventoExterno(event)
 	}
 	w.logger.Log(LogEntry{
 		WallTime: time.Now(),
-		Entity:   w.entityName(),
+		Entity:   w.nombreEntidad(),
 		Event:    "worker_stopped",
 		WorkerID: w.id,
 		SimTime:  w.state.LVT,
 	})
 }
 
-func (w *Worker) entityName() string {
+func (w *Worker) nombreEntidad() string {
 	return fmt.Sprintf("worker-%d", w.id)
 }
 
-func (w *Worker) handleExternal(event Evento) {
+func (w *Worker) manejoEventoExterno(event Evento) {
 	w.logger.Log(LogEntry{
 		WallTime: time.Now(),
-		Entity:   w.entityName(),
+		Entity:   w.nombreEntidad(),
 		Event:    "external_received",
 		WorkerID: w.id,
 		EventID:  event.ID,
@@ -65,11 +65,11 @@ func (w *Worker) handleExternal(event Evento) {
 			"event_timestamp": event.Tiempo,
 		},
 	})
-	w.createCheckpoint(len(w.history), "live")
+	w.crearCheckpoint(len(w.historial), "live")
 	if event.Tiempo < w.state.LVT {
 		w.logger.Log(LogEntry{
 			WallTime: time.Now(),
-			Entity:   w.entityName(),
+			Entity:   w.nombreEntidad(),
 			Event:    "straggler_detected",
 			WorkerID: w.id,
 			EventID:  event.ID,
@@ -78,32 +78,32 @@ func (w *Worker) handleExternal(event Evento) {
 				"event_timestamp": event.Tiempo,
 			},
 		})
-		w.performRollback(event)
+		w.ejecutarRollback(event)
 		return
 	}
-	w.appendEvent(event)
-	w.processEvent(event, false)
+	w.insertarEvento(event)
+	w.procesarEvento(event, false)
 }
 
-func (w *Worker) appendEvent(event Evento) {
-	idx := sort.Search(len(w.history), func(i int) bool {
-		if w.history[i].Tiempo == event.Tiempo {
-			return w.history[i].ID >= event.ID
+func (w *Worker) insertarEvento(event Evento) {
+	idx := sort.Search(len(w.historial), func(i int) bool {
+		if w.historial[i].Tiempo == event.Tiempo {
+			return w.historial[i].ID >= event.ID
 		}
-		return w.history[i].Tiempo > event.Tiempo
+		return w.historial[i].Tiempo > event.Tiempo
 	})
-	w.history = append(w.history, Evento{})
-	copy(w.history[idx+1:], w.history[idx:])
-	w.history[idx] = event
+	w.historial = append(w.historial, Evento{})
+	copy(w.historial[idx+1:], w.historial[idx:])
+	w.historial[idx] = event
 }
 
-func (w *Worker) processEvent(event Evento, fromReplay bool) {
+func (w *Worker) procesarEvento(event Evento, fromReplay bool) {
 	prev := w.state.LVT
 	w.state.LVT = event.Tiempo
-	w.stats.ExternalEvents++
+	w.stats.EventosExternos++
 	w.logger.Log(LogEntry{
 		WallTime: time.Now(),
-		Entity:   w.entityName(),
+		Entity:   w.nombreEntidad(),
 		Event:    "external_processed",
 		WorkerID: w.id,
 		EventID:  event.ID,
@@ -113,11 +113,11 @@ func (w *Worker) processEvent(event Evento, fromReplay bool) {
 			"previous_lvt": prev,
 		},
 	})
-	w.generateInternalEvents()
+	w.generarEventosInternos()
 	w.stats.LastVirtualTime = w.state.LVT
 }
 
-func (w *Worker) generateInternalEvents() {
+func (w *Worker) generarEventosInternos() {
 	count := w.rand.Intn(w.cfg.InternalMaxEvents-w.cfg.InternalMinEvents+1) + w.cfg.InternalMinEvents
 	for i := 0; i < count; i++ {
 		if w.state.LVT >= w.cfg.MaxVirtualTime {
@@ -130,10 +130,10 @@ func (w *Worker) generateInternalEvents() {
 			newTime = w.cfg.MaxVirtualTime
 		}
 		w.state.LVT = newTime
-		w.stats.InternalEvents++
+		w.stats.EventosInternos++
 		w.logger.Log(LogEntry{
 			WallTime: time.Now(),
-			Entity:   w.entityName(),
+			Entity:   w.nombreEntidad(),
 			Event:    "internal_processed",
 			WorkerID: w.id,
 			SimTime:  w.state.LVT,
@@ -145,10 +145,10 @@ func (w *Worker) generateInternalEvents() {
 	}
 }
 
-func (w *Worker) performRollback(straggler Evento) {
+func (w *Worker) ejecutarRollback(straggler Evento) {
 	w.stats.Rollbacks++
-	w.appendEvent(straggler)
-	cpIdx := w.findCheckpointFor(straggler.Tiempo)
+	w.insertarEvento(straggler)
+	cpIdx := w.buscarCheckpoint(straggler.Tiempo)
 	if cpIdx < 0 {
 		cpIdx = 0
 	}
@@ -156,7 +156,7 @@ func (w *Worker) performRollback(straggler Evento) {
 	cp := w.checkpoints[cpIdx]
 	w.logger.Log(LogEntry{
 		WallTime:     time.Now(),
-		Entity:       w.entityName(),
+		Entity:       w.nombreEntidad(),
 		Event:        "rollback_start",
 		WorkerID:     w.id,
 		SimTime:      cp.Estado.LVT,
@@ -166,14 +166,14 @@ func (w *Worker) performRollback(straggler Evento) {
 	w.state = cp.Estado
 	w.stats.LastVirtualTime = w.state.LVT
 	w.checkpoints = w.checkpoints[:cpIdx+1]
-	for idx := cp.HistoryLen; idx < len(w.history); idx++ {
-		e := w.history[idx]
-		w.createCheckpoint(idx, "replay")
-		w.processEvent(e, true)
+	for idx := cp.HistoryLen; idx < len(w.historial); idx++ {
+		e := w.historial[idx]
+		w.crearCheckpoint(idx, "replay")
+		w.procesarEvento(e, true)
 	}
 	w.logger.Log(LogEntry{
 		WallTime:     time.Now(),
-		Entity:       w.entityName(),
+		Entity:       w.nombreEntidad(),
 		Event:        "rollback_end",
 		WorkerID:     w.id,
 		SimTime:      w.state.LVT,
@@ -182,7 +182,7 @@ func (w *Worker) performRollback(straggler Evento) {
 	})
 }
 
-func (w *Worker) findCheckpointFor(ts int) int {
+func (w *Worker) buscarCheckpoint(ts int) int {
 	for i := len(w.checkpoints) - 1; i >= 0; i-- {
 		if w.checkpoints[i].Estado.LVT <= ts {
 			return i
@@ -191,13 +191,13 @@ func (w *Worker) findCheckpointFor(ts int) int {
 	return -1
 }
 
-func (w *Worker) createCheckpoint(historyLen int, mode string) {
+func (w *Worker) crearCheckpoint(historyLen int, mode string) {
 	cp := Checkpoint{Estado: w.state, HistoryLen: historyLen}
 	w.checkpoints = append(w.checkpoints, cp)
 	w.stats.CheckpointsBuilt++
 	w.logger.Log(LogEntry{
 		WallTime: time.Now(),
-		Entity:   w.entityName(),
+		Entity:   w.nombreEntidad(),
 		Event:    "checkpoint_created",
 		WorkerID: w.id,
 		SimTime:  w.state.LVT,

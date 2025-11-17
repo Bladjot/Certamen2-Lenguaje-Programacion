@@ -27,8 +27,8 @@ type Checkpoint struct {
 	HistoryLen int
 }
 
-// SimulationConfig parametriza la ejecución.
-type SimulationConfig struct {
+// ConfigSimulacion parametriza la ejecución.
+type ConfigSimulacion struct {
 	NumWorkers          int
 	TotalExternalEvents int
 	InternalMinEvents   int
@@ -41,8 +41,8 @@ type SimulationConfig struct {
 	MaxVirtualTime      int
 }
 
-// SimulationResult resume los datos claves de una corrida.
-type SimulationResult struct {
+// ResultadoSimulacion resume los datos claves de una corrida.
+type ResultadoSimulacion struct {
 	Duration         time.Duration
 	EventsDispatched int
 	WorkerStats      []WorkerStats
@@ -51,8 +51,8 @@ type SimulationResult struct {
 // WorkerStats expone métricas por worker.
 type WorkerStats struct {
 	ID               int
-	ExternalEvents   int
-	InternalEvents   int
+	EventosExternos  int
+	EventosInternos  int
 	Rollbacks        int
 	LastVirtualTime  int
 	CheckpointsBuilt int

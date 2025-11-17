@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func RunSimulation(cfg SimulationConfig) (*SimulationResult, error) {
+func RunSimulacion(cfg ConfigSimulacion) (*ResultadoSimulacion, error) {
 	if err := cfg.validate(); err != nil {
 		return nil, err
 	}
@@ -36,29 +36,29 @@ func RunSimulation(cfg SimulationConfig) (*SimulationResult, error) {
 	for i, worker := range workers {
 		stats[i] = worker.stats
 	}
-	return &SimulationResult{
+	return &ResultadoSimulacion{
 		Duration:         duration,
 		EventsDispatched: actualEvents,
 		WorkerStats:      stats,
 	}, nil
 }
 
-func runSpeedupExperiment(base SimulationConfig) error {
+func runExperimentoSpeedup(base ConfigSimulacion) error {
 	counts := []int{1, 2, 4, 8}
 	results := make([]time.Duration, len(counts))
 	for idx, workers := range counts {
 		cfg := base
 		cfg.NumWorkers = workers
 		cfg.LogPath = fmt.Sprintf("speedup_w%d.log", workers)
-		res, err := RunSimulation(cfg)
+		res, err := RunSimulacion(cfg)
 		if err != nil {
 			return err
 		}
 		results[idx] = res.Duration
-		fmt.Printf("Workers: %d \tDuration: %s \tLog: %s \tEventos: %d\n", workers, res.Duration, cfg.LogPath, res.EventsDispatched)
+		fmt.Printf("Workers: %d \tDuracion: %s \tLog: %s \tEventos: %d\n", workers, res.Duration, cfg.LogPath, res.EventsDispatched)
 	}
 	baseDuration := results[0]
-	fmt.Println("\nSpeedup analysis:")
+	fmt.Println("\nSpeedup analisis:")
 	for idx, workers := range counts {
 		speedup := float64(baseDuration) / float64(results[idx])
 		fmt.Printf("Workers: %d \tSpeedup: %.2f\n", workers, speedup)

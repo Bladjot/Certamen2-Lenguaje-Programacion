@@ -23,7 +23,7 @@ func main() {
 	)
 	flag.Parse()
 
-	cfg := SimulationConfig{
+	cfg := ConfigSimulacion{
 		NumWorkers:          *workers,
 		TotalExternalEvents: *events,
 		InternalMinEvents:   *internalMin,
@@ -37,23 +37,23 @@ func main() {
 	}
 
 	if *speedup {
-		if err := runSpeedupExperiment(cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "speedup experiment failed: %v\n", err)
+		if err := runExperimentoSpeedup(cfg); err != nil {
+			fmt.Fprintf(os.Stderr, "experimento de speedup fallido: %v\n", err)
 			os.Exit(1)
 		}
 		return
 	}
 
-	res, err := RunSimulation(cfg)
+	res, err := RunSimulacion(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "simulation failed: %v\n", err)
+		fmt.Fprintf(os.Stderr, "simulacion fallida: %v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Printf("Simulación completada en %s. Eventos despachados: %d\n", res.Duration, res.EventsDispatched)
 	for _, s := range res.WorkerStats {
-		fmt.Printf("Worker %d -> extern: %d, intern: %d, rollbacks: %d, checkpoints: %d, LVT final: %d\n",
-			s.ID, s.ExternalEvents, s.InternalEvents, s.Rollbacks, s.CheckpointsBuilt, s.LastVirtualTime)
+		fmt.Printf("Worker %d -> externo: %d, interno: %d, rollbacks: %d, checkpoints: %d, LVT final: %d\n",
+			s.ID, s.EventosExternos, s.EventosInternos, s.Rollbacks, s.CheckpointsBuilt, s.LastVirtualTime)
 	}
 	fmt.Printf("Logs guardados en %s\n", cfg.LogPath)
 }
